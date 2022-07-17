@@ -14,14 +14,17 @@ import com.fasterxml.jackson.annotation.PropertyAccessor;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.deser.std.FromStringDeserializer;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 
 import seedu.address.commons.core.LogsCenter;
 import seedu.address.commons.exceptions.DataConversionException;
+import seedu.address.commons.exceptions.IllegalValueException;
 
 /**
  * Converts a Java object instance to JSON and vice versa
@@ -108,6 +111,32 @@ public class JsonUtil {
      */
     public static <T> String toJsonString(T instance) throws JsonProcessingException {
         return objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(instance);
+    }
+
+    /**
+     * Creates a {@code JsonMappingException} instance that wraps an {@code IllegalValueException} using the
+     * given context and message.
+     *
+     * @param ctx the {@code SerializerProvider} context (from a {@code Serializer})
+     * @param msg the message for the {@code JsonMappingException} and {@code IllegalValueException}
+     * @return a {@code JsonMappingException} that wraps an {@code IllegalValueException}
+     */
+    public static JsonMappingException getWrappedIllegalValueException(SerializerProvider ctx, String msg) {
+        IllegalValueException ive = new IllegalValueException(msg);
+        return JsonMappingException.from(ctx, msg, ive);
+    }
+
+    /**
+     * Creates a {@code JsonMappingException} instance that wraps an {@code IllegalValueException} using the
+     * given context and message.
+     *
+     * @param ctx the {@code DeserializationContext} (from a {@code Deserializer})
+     * @param msg the message for the {@code JsonMappingException} and {@code IllegalValueException}
+     * @return a {@code JsonMappingException} that wraps an {@code IllegalValueException}
+     */
+    public static JsonMappingException getWrappedIllegalValueException(DeserializationContext ctx, String msg) {
+        IllegalValueException ive = new IllegalValueException(msg);
+        return JsonMappingException.from(ctx, msg, ive);
     }
 
     /**
