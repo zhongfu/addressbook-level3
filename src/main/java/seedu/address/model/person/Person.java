@@ -2,17 +2,36 @@ package seedu.address.model.person;
 
 import static seedu.address.commons.util.CollectionUtil.requireAllNonNull;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.ObjectCodec;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.ser.std.StdSerializer;
+
+import seedu.address.commons.util.JsonUtil;
 import seedu.address.model.tag.Tag;
 
 /**
  * Represents a Person in the address book.
  * Guarantees: details are present and not null, field values are validated, immutable.
  */
+@JsonSerialize(using = Person.PersonSerializer.class)
+@JsonDeserialize(using = Person.PersonDeserializer.class)
 public class Person {
 
     // Identity fields
@@ -120,4 +139,89 @@ public class Person {
         return builder.toString();
     }
 
+    protected static class PersonSerializer extends StdSerializer<Person> {
+        private PersonSerializer(Class<Person> val) {
+            super(val);
+        }
+
+        private PersonSerializer() {
+            this(null);
+        }
+
+        @Override
+        public void serialize(Person val, JsonGenerator gen, SerializerProvider provider) throws IOException {
+            gen.writeStartObject();
+
+            gen.writeObjectField("name", val.getName());
+            gen.writeObjectField("phone", val.getPhone());
+            gen.writeObjectField("email", val.getEmail());
+            gen.writeObjectField("address", val.getAddress());
+            gen.writeObjectField("tagged", val.getTags());
+
+            gen.writeEndObject();
+        }
+    }
+
+    protected static class PersonDeserializer extends StdDeserializer<Person> {
+        private static final String MISSING_OR_INVALID_INSTANCE = "The person instance is invalid or missing!";
+        private static final String MISSING_OR_INVALID_VALUE = "The person's %s field is invalid or missing!";
+
+        private PersonDeserializer(Class<?> vc) {
+            super(vc);
+        }
+
+        private PersonDeserializer() {
+            this(null);
+        }
+
+        private static JsonNode getNonNullNode(ObjectNode node, String key, DeserializationContext ctx)
+                throws JsonMappingException {
+            JsonNode jsonNode = node.get(key);
+            if (jsonNode == null) {
+                throw JsonUtil.getWrappedIllegalValueException(
+                    ctx, String.format(MISSING_OR_INVALID_VALUE, key));
+            }
+
+            return jsonNode;
+        }
+
+        @Override
+        public Person deserialize(JsonParser p, DeserializationContext ctx)
+                throws IOException, JsonProcessingException {
+            JsonNode node = p.readValueAsTree();
+            ObjectCodec codec = p.getCodec();
+
+            if (!(node instanceof ObjectNode)) {
+                throw JsonUtil.getWrappedIllegalValueException(ctx, MISSING_OR_INVALID_INSTANCE);
+            }
+
+            ObjectNode person = (ObjectNode) node;
+
+            Name name = codec.treeToValue(
+                getNonNullNode(person, "name", ctx), Name.class);
+
+            Phone phone = codec.treeToValue(
+                getNonNullNode(person, "phone", ctx),
+                Phone.class);
+
+            Email email = codec.treeToValue(
+                getNonNullNode(person, "email", ctx),
+                Email.class);
+
+            Address address = codec.treeToValue(
+                getNonNullNode(person, "address", ctx),
+                Address.class);
+
+            JsonParser tagSetParser = getNonNullNode(person, "tagged", ctx)
+                .traverse(codec);
+            Set<Tag> tags = codec.readValue(tagSetParser, new TypeReference<Set<Tag>>(){});
+
+            return new Person(name, phone, email, address, tags);
+        }
+
+        @Override
+        public Person getNullValue(DeserializationContext ctx) throws JsonMappingException {
+            throw JsonUtil.getWrappedIllegalValueException(ctx, MISSING_OR_INVALID_INSTANCE);
+        }
+    }
 }
