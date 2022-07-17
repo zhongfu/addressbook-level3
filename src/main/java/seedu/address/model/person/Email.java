@@ -3,10 +3,29 @@ package seedu.address.model.person;
 import static java.util.Objects.requireNonNull;
 import static seedu.address.commons.util.AppUtil.checkArgument;
 
+import java.io.IOException;
+
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
+import com.fasterxml.jackson.databind.node.TextNode;
+import com.fasterxml.jackson.databind.ser.std.StdSerializer;
+
+import seedu.address.commons.util.JsonUtil;
+
 /**
  * Represents a Person's email in the address book.
  * Guarantees: immutable; is valid as declared in {@link #isValidEmail(String)}
  */
+@JsonSerialize(using = Email.EmailSerializer.class)
+@JsonDeserialize(using = Email.EmailDeserializer.class)
 public class Email {
 
     private static final String SPECIAL_CHARACTERS = "+_.-";
@@ -68,4 +87,52 @@ public class Email {
         return value.hashCode();
     }
 
+    protected static class EmailSerializer extends StdSerializer<Email> {
+        private EmailSerializer(Class<Email> val) {
+            super(val);
+        }
+
+        private EmailSerializer() {
+            this(null);
+        }
+
+        @Override
+        public void serialize(Email val, JsonGenerator gen, SerializerProvider provider) throws IOException {
+            gen.writeString(val.value);
+        }
+    }
+
+    protected static class EmailDeserializer extends StdDeserializer<Email> {
+        private static final String MISSING_OR_INVALID_VALUE = "The email value is invalid or missing!";
+
+        private EmailDeserializer(Class<?> vc) {
+            super(vc);
+        }
+
+        private EmailDeserializer() {
+            this(null);
+        }
+
+        @Override
+        public Email deserialize(JsonParser p, DeserializationContext ctx)
+                throws IOException, JsonProcessingException {
+            JsonNode node = p.readValueAsTree();
+
+            if (!(node instanceof TextNode)) {
+                throw JsonUtil.getWrappedIllegalValueException(ctx, MISSING_OR_INVALID_VALUE);
+            }
+
+            String email = ((TextNode) node).textValue();
+            if (!Email.isValidEmail(email)) {
+                throw JsonUtil.getWrappedIllegalValueException(ctx, Email.MESSAGE_CONSTRAINTS);
+            }
+
+            return new Email(email);
+        }
+
+        @Override
+        public Email getNullValue(DeserializationContext ctx) throws JsonMappingException {
+            throw JsonUtil.getWrappedIllegalValueException(ctx, MISSING_OR_INVALID_VALUE);
+        }
+    }
 }
