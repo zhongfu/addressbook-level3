@@ -3,6 +3,7 @@ package seedu.address.model.person;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static seedu.address.testutil.PersonUtil.serializePerson;
+import static seedu.address.testutil.TestUtil.toNormalizedJsonString;
 import static seedu.address.testutil.TypicalPersons.ALICE;
 import static seedu.address.testutil.TypicalPersons.BENSON;
 import static seedu.address.testutil.TypicalPersons.CARL;
@@ -43,7 +44,7 @@ public class UniquePersonListSerdesTest {
 
         String serialized = serializeList(serializedPersonList);
 
-        assertEquals(serialized, JsonUtil.toJsonString(upl));
+        assertEquals(serialized, toNormalizedJsonString(upl));
     }
 
     @Test
@@ -51,7 +52,7 @@ public class UniquePersonListSerdesTest {
         UniquePersonList upl = new UniquePersonList();
         String serialized = serializeList(Arrays.asList());
 
-        assertEquals(serialized, JsonUtil.toJsonString(upl));
+        assertEquals(serialized, toNormalizedJsonString(upl));
     }
 
     /**

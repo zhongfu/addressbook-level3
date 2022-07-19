@@ -3,6 +3,7 @@ package seedu.address.model.person;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static seedu.address.testutil.PersonUtil.serializePerson;
+import static seedu.address.testutil.TestUtil.toNormalizedJsonString;
 import static seedu.address.testutil.TypicalPersons.BENSON;
 
 import java.io.IOException;
@@ -35,7 +36,7 @@ public class PersonSerdesTest {
 
     @Test
     public void serialize() throws JsonProcessingException {
-        assertEquals(VALID_SERIALIZATION, JsonUtil.toJsonString(BENSON));
+        assertEquals(VALID_SERIALIZATION, toNormalizedJsonString(BENSON));
     }
 
     /**
