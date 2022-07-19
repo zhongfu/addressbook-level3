@@ -7,6 +7,7 @@ import static seedu.address.logic.parser.CliSyntax.PREFIX_PHONE;
 import static seedu.address.logic.parser.CliSyntax.PREFIX_TAG;
 
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import seedu.address.logic.commands.AddCommand;
 import seedu.address.logic.commands.EditCommand.EditPersonDescriptor;
@@ -58,5 +59,45 @@ public class PersonUtil {
             }
         }
         return sb.toString();
+    }
+
+    /**
+     * Generates a rudimentary JSON serialization of a {@code Person}.
+     *
+     * @param person the {@code Person} to be serialized
+     * @return a JSON serialization of the given {@code Person}
+     */
+    public static String serializePerson(Person person) {
+        return serializePerson(
+            person.getName().toString(),
+            person.getPhone().toString(),
+            person.getAddress().toString(),
+            person.getEmail().toString(),
+            person.getTags().stream().map((tag) -> tag.tagName).collect(Collectors.toSet()));
+    }
+
+    /**
+     * Generates a rudimentary JSON serialization of a {@code Person} with the given details.
+     *
+     * @param name the string representation of the {@code Person}'s name
+     * @param phone the string representation of the {@code Person}'s phone number
+     * @param address the string representation of the {@code Person}'s address
+     * @param email the string representation of the {@code Person}'s email address
+     * @param tags a {@code Set} of the tags assigned to the {@code Person}
+     * @return a JSON serialization of the given {@code Person}
+     */
+    public static String serializePerson(String name, String phone, String address, String email,
+            Set<String> tags) {
+        return "{\n"
+            + "  \"name\" : " + (name == null ? "null" : "\"" + name + "\"") + ",\n"
+            + "  \"phone\" : " + (phone == null ? "null" : "\"" + phone + "\"") + ",\n"
+            + "  \"email\" : " + (email == null ? "null" : "\"" + email + "\"") + ",\n"
+            + "  \"address\" : " + (address == null ? "null" : "\"" + address + "\"") + ",\n"
+            + "  \"tagged\" : [ "
+                + tags.stream()
+                    .map((tag) -> tag == null ? "null" : "\"" + tag + "\"")
+                    .collect(Collectors.joining(", "))
+            + (tags.size() > 0 ? " ]" : "]")
+            + "\n}";
     }
 }
