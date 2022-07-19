@@ -3,11 +3,27 @@ package seedu.address.model.person;
 import static java.util.Objects.requireNonNull;
 import static seedu.address.commons.util.CollectionUtil.requireAllNonNull;
 
+import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.ObjectCodec;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
+import com.fasterxml.jackson.databind.ser.std.StdSerializer;
+
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import seedu.address.commons.util.JsonUtil;
 import seedu.address.model.person.exceptions.DuplicatePersonException;
 import seedu.address.model.person.exceptions.PersonNotFoundException;
 
@@ -22,6 +38,8 @@ import seedu.address.model.person.exceptions.PersonNotFoundException;
  *
  * @see Person#isSamePerson(Person)
  */
+@JsonSerialize(using = UniquePersonList.UniquePersonListSerializer.class)
+@JsonDeserialize(using = UniquePersonList.UniquePersonListDeserializer.class)
 public class UniquePersonList implements Iterable<Person> {
 
     private final ObservableList<Person> internalList = FXCollections.observableArrayList();
@@ -133,5 +151,53 @@ public class UniquePersonList implements Iterable<Person> {
             }
         }
         return true;
+    }
+
+    protected static class UniquePersonListSerializer extends StdSerializer<UniquePersonList> {
+        private UniquePersonListSerializer(Class<UniquePersonList> val) {
+            super(val);
+        }
+
+        private UniquePersonListSerializer() {
+            this(null);
+        }
+
+        @Override
+        public void serialize(UniquePersonList val, JsonGenerator gen, SerializerProvider provider) throws IOException {
+            gen.writeObject(val.asUnmodifiableObservableList());
+        }
+    }
+
+    protected static class UniquePersonListDeserializer extends StdDeserializer<UniquePersonList> {
+        private static final String MISSING_OR_INVALID_VALUE = "The person list is invalid or missing!";
+
+        private UniquePersonListDeserializer(Class<?> vc) {
+            super(vc);
+        }
+
+        private UniquePersonListDeserializer() {
+            this(null);
+        }
+
+        @Override
+        public UniquePersonList deserialize(JsonParser p, DeserializationContext ctx)
+                throws IOException, JsonProcessingException {
+            JsonNode node = p.readValueAsTree();
+            ObjectCodec codec = p.getCodec();
+
+            JsonParser listParser = node.traverse(codec);
+            List<Person> personList =
+                codec.readValue(listParser, new TypeReference<List<Person>>(){});
+
+            UniquePersonList upl = new UniquePersonList();
+            upl.setPersons(personList);
+
+            return upl;
+        }
+
+        @Override
+        public UniquePersonList getNullValue(DeserializationContext ctx) throws JsonMappingException {
+            throw JsonUtil.getWrappedIllegalValueException(ctx, MISSING_OR_INVALID_VALUE);
+        }
     }
 }
