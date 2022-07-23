@@ -6,6 +6,8 @@ import static seedu.address.logic.parser.CliSyntax.PREFIX_NAME;
 import static seedu.address.logic.parser.CliSyntax.PREFIX_PHONE;
 import static seedu.address.logic.parser.CliSyntax.PREFIX_TAG;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -88,16 +90,17 @@ public class PersonUtil {
      */
     public static String serializePerson(String name, String phone, String address, String email,
             Set<String> tags) {
-        return "{\n"
-            + "  \"name\" : " + (name == null ? "null" : "\"" + name + "\"") + ",\n"
-            + "  \"phone\" : " + (phone == null ? "null" : "\"" + phone + "\"") + ",\n"
-            + "  \"email\" : " + (email == null ? "null" : "\"" + email + "\"") + ",\n"
-            + "  \"address\" : " + (address == null ? "null" : "\"" + address + "\"") + ",\n"
-            + "  \"tagged\" : [ "
-                + tags.stream()
-                    .map((tag) -> tag == null ? "null" : "\"" + tag + "\"")
-                    .collect(Collectors.joining(", "))
-            + (tags.size() > 0 ? " ]" : "]")
-            + "\n}";
+        Map<String, String> map = new LinkedHashMap<>();
+
+        map.put("name", name == null ? "null" : "\"" + name + "\"");
+        map.put("phone", phone == null ? "null" : "\"" + phone + "\"");
+        map.put("email", email == null ? "null" : "\"" + email + "\"");
+        map.put("address", address == null ? "null" : "\"" + address + "\"");
+        map.put("tagged", TestUtil.serializeList(
+            tags.stream()
+                .map((tag) -> tag == null ? "null" : "\"" + tag + "\"")
+                .collect(Collectors.toList())));
+
+        return TestUtil.serializeObject(map);
     }
 }
