@@ -122,6 +122,7 @@ How the parsing works:
 The `Model` component,
 
 * stores the address book data i.e., all `Person` objects (which are contained in a `UniquePersonList` object).
+* allows for the automatic serialization and deserialization of `AddressBook` objects (and any component objects, e.g. `Person`, `Email`, etc) to and from JSON.
 * stores the currently 'selected' `Person` objects (e.g., results of a search query) as a separate _filtered_ list which is exposed to outsiders as an unmodifiable `ObservableList<Person>` that can be 'observed' e.g. the UI can be bound to this list so that the UI automatically updates when the data in the list change.
 * stores a `UserPref` object that represents the user’s preferences. This is exposed to the outside as a `ReadOnlyUserPref` objects.
 * does not depend on any of the other three components (as the `Model` represents data entities of the domain, they should make sense on their own without depending on other components)
@@ -153,6 +154,28 @@ Classes used by multiple components are in the `seedu.addressbook.commons` packa
 ## **Implementation**
 
 This section describes some noteworthy details on how certain features are implemented.
+
+### JSON serialization and deserialization
+
+The serialization and deserialization of model objects (e.g. `AddressBook`, `UniquePersonList`, `Person`, `Tag`) is handled by custom serializers and deserializers, implemented as nested class within each model class.
+
+These serializers and deserializers are automatically used by Jackson during serialization and deserialization.
+
+The serializer and deserializer for each class determine how the objects are to be serialized and deserialized, including but not limited to:  
+* which fields are to be stored,
+* how each field should be (de)serialized, e.g. by directly converting it to/from a JSON type, or by delegating it to Jackson (which will use the serializer/deserializer for the field type), and
+* how the fields and current object are to be represented as (or parsed from) JSON values, e.g. objects, strings, numbers.
+
+This architecture has some advantages:  
+* The serdes implementations are kept together with the related classes; developers adding new model classes will not have to modify files in other packages.
+   * The previous implementation (with `JsonAdaptedPerson`, etc) requires that developers update the `JsonAdapted` classes belonging in the `Storage` component; this may not be immediately evident to developers.
+* Developers adding new model classes can incorporate existing types (that already have corresponding serializers/deserializers) without needing to duplicate the serdes code, unlike with the previous implementation.
+* Developers will also not need to (practically) duplicate classes, e.g. `Job` -> `JsonAdaptedJob` (with the `@JsonCreator` annotation), just so that Jackson has something to serialize from/deserialize to.
+
+However, it also has some drawbacks:  
+* It can be rather verbose, since each serializer/deserializer class contains a portion of boilerplate code
+* Developers writing serializers/deserializers will need to have basic knowledge of JSON, e.g. the types that are available, the structure of JSON objects and arrays, etc
+* Some knowledge of Jackson components (e.g. `JsonParser`, `JsonGenerator`, `ObjectNode`) is also required, as developers will need to use them to write values to/read values from the internal Jackson representation of a JSON value/object.
 
 ### \[Proposed\] Undo/redo feature
 
