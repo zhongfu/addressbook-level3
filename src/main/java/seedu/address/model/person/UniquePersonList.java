@@ -19,6 +19,7 @@ import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 
 import javafx.collections.FXCollections;
@@ -169,7 +170,7 @@ public class UniquePersonList implements Iterable<Person> {
     }
 
     protected static class UniquePersonListDeserializer extends StdDeserializer<UniquePersonList> {
-        private static final String MISSING_OR_INVALID_VALUE = "The person list is invalid or missing!";
+        private static final String MISSING_OR_INVALID_INSTANCE = "The person list is invalid or missing!";
 
         private UniquePersonListDeserializer(Class<?> vc) {
             super(vc);
@@ -185,9 +186,13 @@ public class UniquePersonList implements Iterable<Person> {
             JsonNode node = p.readValueAsTree();
             ObjectCodec codec = p.getCodec();
 
-            JsonParser listParser = node.traverse(codec);
-            List<Person> personList =
-                codec.readValue(listParser, new TypeReference<List<Person>>(){});
+            if (!(node instanceof ArrayNode)) {
+                throw JsonUtil.getWrappedIllegalValueException(ctx, MISSING_OR_INVALID_INSTANCE);
+            }
+
+            List<Person> personList = node // is ArrayNode
+                .traverse(codec)
+                .readValueAs(new TypeReference<List<Person>>(){});
 
             UniquePersonList upl = new UniquePersonList();
             upl.setPersons(personList);
@@ -197,7 +202,7 @@ public class UniquePersonList implements Iterable<Person> {
 
         @Override
         public UniquePersonList getNullValue(DeserializationContext ctx) throws JsonMappingException {
-            throw JsonUtil.getWrappedIllegalValueException(ctx, MISSING_OR_INVALID_VALUE);
+            throw JsonUtil.getWrappedIllegalValueException(ctx, MISSING_OR_INVALID_INSTANCE);
         }
     }
 }

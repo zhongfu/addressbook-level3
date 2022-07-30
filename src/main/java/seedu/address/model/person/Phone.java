@@ -83,7 +83,7 @@ public class Phone {
     }
 
     protected static class PhoneDeserializer extends StdDeserializer<Phone> {
-        private static final String MISSING_OR_INVALID_VALUE = "The phone value is invalid or missing!";
+        private static final String MISSING_OR_INVALID_INSTANCE = "The phone value is invalid or missing!";
 
         private PhoneDeserializer(Class<?> vc) {
             super(vc);
@@ -99,7 +99,7 @@ public class Phone {
             JsonNode node = p.readValueAsTree();
 
             if (!(node instanceof TextNode)) {
-                throw JsonUtil.getWrappedIllegalValueException(ctx, MISSING_OR_INVALID_VALUE);
+                throw JsonUtil.getWrappedIllegalValueException(ctx, MISSING_OR_INVALID_INSTANCE);
             }
 
             String phone = ((TextNode) node).textValue();
@@ -112,7 +112,7 @@ public class Phone {
 
         @Override
         public Phone getNullValue(DeserializationContext ctx) throws JsonMappingException {
-            throw JsonUtil.getWrappedIllegalValueException(ctx, MISSING_OR_INVALID_VALUE);
+            throw JsonUtil.getWrappedIllegalValueException(ctx, MISSING_OR_INVALID_INSTANCE);
         }
     }
 }

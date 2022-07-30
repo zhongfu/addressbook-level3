@@ -91,7 +91,7 @@ public class Name {
     }
 
     protected static class NameDeserializer extends StdDeserializer<Name> {
-        private static final String MISSING_OR_INVALID_VALUE = "The name value is invalid or missing!";
+        private static final String MISSING_OR_INVALID_INSTANCE = "The name value is invalid or missing!";
 
         private NameDeserializer(Class<?> vc) {
             super(vc);
@@ -107,7 +107,7 @@ public class Name {
             JsonNode node = p.readValueAsTree();
 
             if (!(node instanceof TextNode)) {
-                throw JsonUtil.getWrappedIllegalValueException(ctx, MISSING_OR_INVALID_VALUE);
+                throw JsonUtil.getWrappedIllegalValueException(ctx, MISSING_OR_INVALID_INSTANCE);
             }
 
             String name = ((TextNode) node).textValue();
@@ -120,7 +120,7 @@ public class Name {
 
         @Override
         public Name getNullValue(DeserializationContext ctx) throws JsonMappingException {
-            throw JsonUtil.getWrappedIllegalValueException(ctx, MISSING_OR_INVALID_VALUE);
+            throw JsonUtil.getWrappedIllegalValueException(ctx, MISSING_OR_INVALID_INSTANCE);
         }
     }
 }

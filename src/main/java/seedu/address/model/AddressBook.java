@@ -4,6 +4,7 @@ import static java.util.Objects.requireNonNull;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.function.UnaryOperator;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
@@ -166,7 +167,9 @@ public class AddressBook implements ReadOnlyAddressBook {
     }
 
     protected static class AddressBookDeserializer extends StdDeserializer<AddressBook> {
-        private static final String MISSING_OR_INVALID_VALUE = "This address book is invalid!";
+        private static final String MISSING_OR_INVALID_INSTANCE = "The address book is invalid or missing!";
+        private static final UnaryOperator<String> INVALID_VAL_FMTR =
+            k -> String.format("This address book's %s value is invalid!", k);
 
         private AddressBookDeserializer(Class<?> vc) {
             super(vc);
@@ -178,13 +181,13 @@ public class AddressBook implements ReadOnlyAddressBook {
 
         private static JsonNode getNonNullNode(ObjectNode node, String key, DeserializationContext ctx)
                 throws JsonMappingException {
-            JsonNode jsonNode = node.get(key);
-            if (jsonNode == null) {
-                throw JsonUtil.getWrappedIllegalValueException(
-                    ctx, String.format(MISSING_OR_INVALID_VALUE, key));
-            }
+            return JsonUtil.getNonNullNode(node, key, ctx, INVALID_VAL_FMTR);
+        }
 
-            return jsonNode;
+        private static <T> T getNonNullNodeWithType(ObjectNode node, String key, DeserializationContext ctx,
+                Class<T> cls) throws JsonMappingException {
+            return JsonUtil.getNonNullNodeWithType(node, key, ctx,
+                INVALID_VAL_FMTR, cls);
         }
 
         @Override
@@ -194,22 +197,21 @@ public class AddressBook implements ReadOnlyAddressBook {
             ObjectCodec codec = p.getCodec();
 
             if (!(node instanceof ObjectNode)) {
-                throw JsonUtil.getWrappedIllegalValueException(ctx, MISSING_OR_INVALID_VALUE);
+                throw JsonUtil.getWrappedIllegalValueException(ctx, MISSING_OR_INVALID_INSTANCE);
             }
 
             ObjectNode objNode = (ObjectNode) node;
 
-            UniquePersonList upl = codec.treeToValue(
-                getNonNullNode(objNode, "persons", ctx),
-                UniquePersonList.class);
+            UniquePersonList upl = getNonNullNode(objNode, "persons", ctx)
+                .traverse(codec)
+                .readValueAs(UniquePersonList.class);
 
-            AddressBook ab = new AddressBook(upl);
-            return ab;
+            return new AddressBook(upl);
         }
 
         @Override
         public AddressBook getNullValue(DeserializationContext ctx) throws JsonMappingException {
-            throw JsonUtil.getWrappedIllegalValueException(ctx, MISSING_OR_INVALID_VALUE);
+            throw JsonUtil.getWrappedIllegalValueException(ctx, MISSING_OR_INVALID_INSTANCE);
         }
     }
 }

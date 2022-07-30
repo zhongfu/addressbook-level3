@@ -7,6 +7,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.UnaryOperator;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
@@ -20,6 +21,7 @@ import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 
@@ -164,7 +166,8 @@ public class Person {
 
     protected static class PersonDeserializer extends StdDeserializer<Person> {
         private static final String MISSING_OR_INVALID_INSTANCE = "The person instance is invalid or missing!";
-        private static final String MISSING_OR_INVALID_VALUE = "The person's %s field is invalid or missing!";
+        private static final UnaryOperator<String> INVALID_VAL_FMTR =
+            k -> String.format("This person's %s value is invalid!", k);
 
         private PersonDeserializer(Class<?> vc) {
             super(vc);
@@ -176,14 +179,14 @@ public class Person {
 
         private static JsonNode getNonNullNode(ObjectNode node, String key, DeserializationContext ctx)
                 throws JsonMappingException {
-            JsonNode jsonNode = node.get(key);
-            if (jsonNode == null) {
-                throw JsonUtil.getWrappedIllegalValueException(
-                    ctx, String.format(MISSING_OR_INVALID_VALUE, key));
-            }
-
-            return jsonNode;
-        }
+                    return JsonUtil.getNonNullNode(node, key, ctx, INVALID_VAL_FMTR);
+                }
+        
+                private static <T> T getNonNullNodeWithType(ObjectNode node, String key, DeserializationContext ctx,
+                        Class<T> cls) throws JsonMappingException {
+                    return JsonUtil.getNonNullNodeWithType(node, key, ctx,
+                        INVALID_VAL_FMTR, cls);
+                }
 
         @Override
         public Person deserialize(JsonParser p, DeserializationContext ctx)
@@ -197,24 +200,26 @@ public class Person {
 
             ObjectNode person = (ObjectNode) node;
 
-            Name name = codec.treeToValue(
-                getNonNullNode(person, "name", ctx), Name.class);
+            Name name = getNonNullNode(person, "name", ctx)
+                .traverse(codec)
+                .readValueAs(Name.class);
 
-            Phone phone = codec.treeToValue(
-                getNonNullNode(person, "phone", ctx),
-                Phone.class);
+            Phone phone = getNonNullNode(person, "phone", ctx)
+                .traverse(codec)
+                .readValueAs(Phone.class);
 
-            Email email = codec.treeToValue(
-                getNonNullNode(person, "email", ctx),
-                Email.class);
+            Email email = getNonNullNode(person, "email", ctx)
+                .traverse(codec)
+                .readValueAs(Email.class);
 
-            Address address = codec.treeToValue(
-                getNonNullNode(person, "address", ctx),
-                Address.class);
+            Address address = getNonNullNode(person, "address", ctx)
+                .traverse(codec)
+                .readValueAs(Address.class);
 
-            JsonParser tagSetParser = getNonNullNode(person, "tagged", ctx)
-                .traverse(codec);
-            Set<Tag> tags = codec.readValue(tagSetParser, new TypeReference<Set<Tag>>(){});
+            Set<Tag> tags = getNonNullNodeWithType(person, "tagged", ctx, ArrayNode.class)
+                .traverse(codec)
+                .readValueAs(new TypeReference<Set<Tag>>(){});
+
 
             return new Person(name, phone, email, address, tags);
         }
