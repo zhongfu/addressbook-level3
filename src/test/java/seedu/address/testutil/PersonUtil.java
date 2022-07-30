@@ -90,16 +90,36 @@ public class PersonUtil {
      */
     public static String serializePerson(String name, String phone, String address, String email,
             Set<String> tags) {
+        return serializePerson(
+            name,
+            phone,
+            address,
+            email,
+            TestUtil.serializeList(
+            tags.stream()
+                .map((tag) -> tag == null ? "null" : "\"" + tag + "\"")
+                .collect(Collectors.toList())));
+    }
+
+    /**
+     * Generates a rudimentary JSON serialization of a {@code Person} with the given details.
+     *
+     * @param name the string representation of the {@code Person}'s name
+     * @param phone the string representation of the {@code Person}'s phone number
+     * @param address the string representation of the {@code Person}'s address
+     * @param email the string representation of the {@code Person}'s email address
+     * @param tags the string representation of the tags assigned to the {@code Person}
+     * @return a JSON serialization of the given {@code Person}
+     */
+    public static String serializePerson(String name, String phone, String address, String email,
+            String tags) {
         Map<String, String> map = new LinkedHashMap<>();
 
         map.put("name", name == null ? "null" : "\"" + name + "\"");
         map.put("phone", phone == null ? "null" : "\"" + phone + "\"");
         map.put("email", email == null ? "null" : "\"" + email + "\"");
         map.put("address", address == null ? "null" : "\"" + address + "\"");
-        map.put("tagged", TestUtil.serializeList(
-            tags.stream()
-                .map((tag) -> tag == null ? "null" : "\"" + tag + "\"")
-                .collect(Collectors.toList())));
+        map.put("tagged", tags);
 
         return TestUtil.serializeObject(map);
     }
