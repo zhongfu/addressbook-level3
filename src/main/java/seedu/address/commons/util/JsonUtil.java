@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Optional;
+import java.util.function.UnaryOperator;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -15,11 +16,13 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.deser.std.FromStringDeserializer;
 import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 
 import seedu.address.commons.core.LogsCenter;
@@ -140,6 +143,65 @@ public class JsonUtil {
     public static JsonMappingException getWrappedIllegalValueException(DeserializationContext ctx, String msg) {
         IllegalValueException ive = new IllegalValueException(msg);
         return JsonMappingException.from(ctx, msg, ive);
+    }
+
+    /**
+     * Gets the (non-null) {@code JsonNode} representing the value stored at the given key in the
+     * {@code ObjectNode}.
+     *
+     * If there is no such node at the given key (i.e. the {@code JsonNode} is {@code null}), then a
+     * {@code JsonMappingException} will be thrown.
+     *
+     * @param node the object to retrieve the value from
+     * @param key the key of the value
+     * @param ctx the current deserialization context
+     * @param errMsgFormatter a unary operator that takes the key as an argument, and returns a string
+     * @return the {@code JsonNode} representing the value stored at the given key in the given object
+     * @throws JsonMappingException if there is no such key in the given object
+     */
+    public static JsonNode getNonNullNode(ObjectNode node, String key, DeserializationContext ctx,
+            UnaryOperator<String> errMsgFormatter) throws JsonMappingException {
+        JsonNode jsonNode = node.get(key);
+        if (jsonNode == null) {
+            throw JsonUtil.getWrappedIllegalValueException(
+                ctx, errMsgFormatter.apply(key));
+        }
+
+        return jsonNode;
+    }
+
+    /**
+     * Gets the (non-null) {@code JsonNode} of type {@code T} representing the value stored at the given key
+     * in the {@code ObjectNode}.
+     *
+     * Generally, the only meaningful types for {@code T} are subclasses of {@code JsonNode}, including but
+     * not limited to {@code ObjectNode}, {@code TextNode}, and {@code IntNode}.
+     *
+     * If there is no such node at the given key (i.e. the {@code JsonNode} is {@code null}), then a
+     * {@code JsonMappingException} will be thrown.
+     *
+     * If the type of the node does not match {@code cls}, then a {@code JsonMappingException} will also be
+     * thrown.
+     *
+     * @param <T> the type of {@code JsonNode} to be returned
+     * @param node the object to retrieve the value from
+     * @param key the key of the value
+     * @param ctx the current deserialization context
+     * @param errMsgFormatter a unary operator that takes the key as an argument, and returns a string
+     * @param cls the type of {@code JsonNode} to be returned
+     * @return the {@code JsonNode} representing the value stored at the given key in the given object
+     * @throws JsonMappingException if there is no such key in the given object, or the type of the
+     *         {@code JsonNode} does not match {@code cls}
+     */
+    public static <T> T getNonNullNodeWithType(ObjectNode node, String key, DeserializationContext ctx,
+            UnaryOperator<String> errMsgFormatter, Class<T> cls) throws JsonMappingException {
+        JsonNode jsonNode = getNonNullNode(node, key, ctx, errMsgFormatter);
+        if (!cls.isInstance(jsonNode)) {
+            throw JsonUtil.getWrappedIllegalValueException(
+                ctx, errMsgFormatter.apply(key));
+        }
+
+        return cls.cast(jsonNode);
     }
 
     /**
