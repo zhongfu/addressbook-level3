@@ -9,9 +9,9 @@ import java.util.logging.Logger;
 
 import seedu.address.commons.core.LogsCenter;
 import seedu.address.commons.exceptions.DataConversionException;
-import seedu.address.commons.exceptions.IllegalValueException;
 import seedu.address.commons.util.FileUtil;
 import seedu.address.commons.util.JsonUtil;
+import seedu.address.model.AddressBook;
 import seedu.address.model.ReadOnlyAddressBook;
 
 /**
@@ -45,18 +45,10 @@ public class JsonAddressBookStorage implements AddressBookStorage {
     public Optional<ReadOnlyAddressBook> readAddressBook(Path filePath) throws DataConversionException {
         requireNonNull(filePath);
 
-        Optional<JsonSerializableAddressBook> jsonAddressBook = JsonUtil.readJsonFile(
-                filePath, JsonSerializableAddressBook.class);
-        if (!jsonAddressBook.isPresent()) {
-            return Optional.empty();
-        }
+        Optional<ReadOnlyAddressBook> jsonAddressBook = JsonUtil.readJsonFile(
+                filePath, AddressBook.class);
 
-        try {
-            return Optional.of(jsonAddressBook.get().toModelType());
-        } catch (IllegalValueException ive) {
-            logger.info("Illegal values found in " + filePath + ": " + ive.getMessage());
-            throw new DataConversionException(ive);
-        }
+        return jsonAddressBook;
     }
 
     @Override
@@ -74,7 +66,6 @@ public class JsonAddressBookStorage implements AddressBookStorage {
         requireNonNull(filePath);
 
         FileUtil.createIfMissing(filePath);
-        JsonUtil.saveJsonFile(new JsonSerializableAddressBook(addressBook), filePath);
+        JsonUtil.saveJsonFile(addressBook, filePath);
     }
-
 }

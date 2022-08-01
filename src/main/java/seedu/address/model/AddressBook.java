@@ -2,9 +2,26 @@ package seedu.address.model;
 
 import static java.util.Objects.requireNonNull;
 
+import java.io.IOException;
 import java.util.List;
+import java.util.function.UnaryOperator;
+
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.ObjectCodec;
+import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 
 import javafx.collections.ObservableList;
+import seedu.address.commons.util.JsonUtil;
 import seedu.address.model.person.Person;
 import seedu.address.model.person.UniquePersonList;
 
@@ -12,6 +29,8 @@ import seedu.address.model.person.UniquePersonList;
  * Wraps all data at the address-book level
  * Duplicates are not allowed (by .isSamePerson comparison)
  */
+@JsonSerialize(using = AddressBook.AddressBookSerializer.class)
+@JsonDeserialize(using = AddressBook.AddressBookDeserializer.class)
 public class AddressBook implements ReadOnlyAddressBook {
 
     private final UniquePersonList persons;
@@ -35,6 +54,16 @@ public class AddressBook implements ReadOnlyAddressBook {
     public AddressBook(ReadOnlyAddressBook toBeCopied) {
         this();
         resetData(toBeCopied);
+    }
+
+    /**
+     * Creates an {@code AddressBook} using the given {@code UniquePersonList}. Only used by
+     * {@code AddressBookDeserializer}.
+     *
+     * @param upl the {@code UniquePersonList} for the new instance
+     */
+    private AddressBook(UniquePersonList upl) {
+        setPersons(upl.asUnmodifiableObservableList());
     }
 
     //// list overwrite operations
@@ -116,5 +145,73 @@ public class AddressBook implements ReadOnlyAddressBook {
     @Override
     public int hashCode() {
         return persons.hashCode();
+    }
+
+    protected static class AddressBookSerializer extends StdSerializer<AddressBook> {
+        private AddressBookSerializer(Class<AddressBook> val) {
+            super(val);
+        }
+
+        private AddressBookSerializer() {
+            this(null);
+        }
+
+        @Override
+        public void serialize(AddressBook val, JsonGenerator gen, SerializerProvider provider) throws IOException {
+            gen.writeStartObject();
+
+            gen.writeObjectField("persons", val.persons);
+
+            gen.writeEndObject();
+        }
+    }
+
+    protected static class AddressBookDeserializer extends StdDeserializer<AddressBook> {
+        private static final String MISSING_OR_INVALID_INSTANCE = "The address book is invalid or missing!";
+        private static final UnaryOperator<String> INVALID_VAL_FMTR =
+            k -> String.format("This address book's %s value is invalid!", k);
+
+        private AddressBookDeserializer(Class<?> vc) {
+            super(vc);
+        }
+
+        private AddressBookDeserializer() {
+            this(null);
+        }
+
+        private static JsonNode getNonNullNode(ObjectNode node, String key, DeserializationContext ctx)
+                throws JsonMappingException {
+            return JsonUtil.getNonNullNode(node, key, ctx, INVALID_VAL_FMTR);
+        }
+
+        private static <T> T getNonNullNodeWithType(ObjectNode node, String key, DeserializationContext ctx,
+                Class<T> cls) throws JsonMappingException {
+            return JsonUtil.getNonNullNodeWithType(node, key, ctx,
+                INVALID_VAL_FMTR, cls);
+        }
+
+        @Override
+        public AddressBook deserialize(JsonParser p, DeserializationContext ctx)
+                throws IOException, JsonProcessingException {
+            JsonNode node = p.readValueAsTree();
+            ObjectCodec codec = p.getCodec();
+
+            if (!(node instanceof ObjectNode)) {
+                throw JsonUtil.getWrappedIllegalValueException(ctx, MISSING_OR_INVALID_INSTANCE);
+            }
+
+            ObjectNode objNode = (ObjectNode) node;
+
+            UniquePersonList upl = getNonNullNode(objNode, "persons", ctx)
+                .traverse(codec)
+                .readValueAs(UniquePersonList.class);
+
+            return new AddressBook(upl);
+        }
+
+        @Override
+        public AddressBook getNullValue(DeserializationContext ctx) throws JsonMappingException {
+            throw JsonUtil.getWrappedIllegalValueException(ctx, MISSING_OR_INVALID_INSTANCE);
+        }
     }
 }

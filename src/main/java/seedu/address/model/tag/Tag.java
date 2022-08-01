@@ -3,10 +3,29 @@ package seedu.address.model.tag;
 import static java.util.Objects.requireNonNull;
 import static seedu.address.commons.util.AppUtil.checkArgument;
 
+import java.io.IOException;
+
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
+import com.fasterxml.jackson.databind.node.TextNode;
+import com.fasterxml.jackson.databind.ser.std.StdSerializer;
+
+import seedu.address.commons.util.JsonUtil;
+
 /**
  * Represents a Tag in the address book.
  * Guarantees: immutable; name is valid as declared in {@link #isValidTagName(String)}
  */
+@JsonSerialize(using = Tag.TagSerializer.class)
+@JsonDeserialize(using = Tag.TagDeserializer.class)
 public class Tag {
 
     public static final String MESSAGE_CONSTRAINTS = "Tags names should be alphanumeric";
@@ -51,4 +70,52 @@ public class Tag {
         return '[' + tagName + ']';
     }
 
+    protected static class TagSerializer extends StdSerializer<Tag> {
+        private TagSerializer(Class<Tag> val) {
+            super(val);
+        }
+
+        private TagSerializer() {
+            this(null);
+        }
+
+        @Override
+        public void serialize(Tag val, JsonGenerator gen, SerializerProvider provider) throws IOException {
+            gen.writeString(val.tagName);
+        }
+    }
+
+    protected static class TagDeserializer extends StdDeserializer<Tag> {
+        private static final String MISSING_OR_INVALID_INSTANCE = "The tag value is invalid or missing!";
+
+        private TagDeserializer(Class<?> vc) {
+            super(vc);
+        }
+
+        private TagDeserializer() {
+            this(null);
+        }
+
+        @Override
+        public Tag deserialize(JsonParser p, DeserializationContext ctx)
+                throws IOException, JsonProcessingException {
+            JsonNode node = p.readValueAsTree();
+
+            if (!(node instanceof TextNode)) {
+                throw JsonUtil.getWrappedIllegalValueException(ctx, MISSING_OR_INVALID_INSTANCE);
+            }
+
+            String tag = ((TextNode) node).textValue();
+            if (!Tag.isValidTagName(tag)) {
+                throw JsonUtil.getWrappedIllegalValueException(ctx, Tag.MESSAGE_CONSTRAINTS);
+            }
+
+            return new Tag(tag);
+        }
+
+        @Override
+        public Tag getNullValue(DeserializationContext ctx) throws JsonMappingException {
+            throw JsonUtil.getWrappedIllegalValueException(ctx, MISSING_OR_INVALID_INSTANCE);
+        }
+    }
 }
